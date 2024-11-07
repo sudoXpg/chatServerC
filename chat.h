@@ -23,8 +23,14 @@
 
 /*
 TODO
-multiple connections at socke
-
+X   multiple connections at socket bug
+    log the ips
+    log the chats
+    userlist -> make dynamic
+    add comments
+    add spam filter
+    some emoji type shii (like if they type sth then a certain figure gets sent type?)
+    [WAYYYY FUTURE] passwords??????
 
 */
 
