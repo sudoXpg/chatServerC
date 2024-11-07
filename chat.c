@@ -6,9 +6,11 @@ int main(){
     struct sockaddr_storage user_addr;
     socklen_t addrlen;
 
-    char buff[256];
+    char buff[100];
     char userIP[INET6_ADDRSTRLEN];
     
+    void init();
+
     // initialise with 5 users
     int fd_count=0;
     int fd_size=5;
@@ -65,17 +67,18 @@ int main(){
                     }
                     else{
                         // got data from user
-                        for(int k=0;k<fd_count;k++){
-                            // send to all
-                            int dest_fd = pollfds[k].fd;
-
-                            // dont send to server and the sender
-                            if(dest_fd!=listener && dest_fd!=sender_fd){
-                                if(send(dest_fd,buff,nbytes,0)==-1){
-                                    perror("send");
-                                }
-                            }
-                        }
+                        
+                        broadcast_message(pollfds,i,buff,strlen(buff),fd_count,listener,sender_fd);
+                        // for(int k=0;k<fd_count;k++){
+                        //     // send to all
+                        //     int dest_fd = pollfds[k].fd;
+                        //     // dont send to server and the sender
+                        //     if(dest_fd!=listener && dest_fd!=sender_fd){
+                        //         if(send(dest_fd,buff,nbytes,0)==-1){
+                        //             perror("send");
+                        //         }
+                        //     }
+                        // }
                     }
                 }
             }

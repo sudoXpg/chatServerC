@@ -11,10 +11,89 @@
 #include<arpa/inet.h>
 #include<netdb.h>
 #include<poll.h>
+#include<ctype.h>
 
 #define PORT "9034"
 #define BACKLOGS 10
 #define LISTENER_ERROR 100
+#define MAXUSERNAMELEN 30
+#define MAXUSERS 100
+#define MAXMSGLEN 256
+#define CONNECTMESSAGE "Enter username : "
+
+/*
+TODO
+multiple connections at socke
+
+
+*/
+
+
+
+typedef struct{
+    int fd;
+    char username[MAXUSERNAMELEN];
+    int registered;
+}client_info;
+
+client_info clients[MAXUSERS];
+
+
+
+int client_count =0;
+
+// Function to trim trailing whitespace/newline from a string
+void trim_trailing_whitespace(char *str) {
+    int length = strlen(str);
+    while (length > 0 && isspace((unsigned char)str[length - 1])) {
+        str[length - 1] = '\0';  // Replace trailing space or newline with null terminator
+        length--;
+    }
+}
+
+
+void register_username(int client_index, char *msg) {
+    trim_trailing_whitespace(msg);
+    memset(clients[client_index].username, 0, MAXUSERNAMELEN);
+    // Copy up to MAXUSERNAMELEN - 1 characters, and ensure null-termination
+    strncpy(clients[client_index].username, msg, MAXUSERNAMELEN - 1);
+    trim_trailing_whitespace(clients[client_index].username);
+    clients[client_index].registered = 1;
+    printf("User registered as: %s\n", clients[client_index].username);
+}
+
+void broadcast_message(struct pollfd pollfds[], int i, char *msg, int msg_len, int fd_count, int listener, int sender_fd) {
+    // Ensure msg is null-terminated
+    msg[msg_len] = '\0';
+
+    // Register username if not already registered
+    if (clients[i].registered==0) {
+        register_username(i, msg);
+        return; // Return to avoid broadcasting the username as a message
+    }
+
+    // Define a buffer for the final message
+    char message_with_username[MAXUSERNAMELEN + MAXMSGLEN + 4] = {0}; // 3 extra for ": " and null terminator
+
+    // Create the formatted message
+    snprintf(message_with_username, sizeof(message_with_username), "%s: %s", clients[i].username, msg);    
+    //trim_trailing_whitespace(message_with_username);
+    // Broadcast the message to all clients except the sender and listener
+    for (int k = 0; k < fd_count; k++) {
+        int dest_fd = pollfds[k].fd;
+        if (dest_fd != listener && dest_fd != sender_fd) {
+            if (send(dest_fd, message_with_username, strlen(message_with_username), 0) == -1) {
+                perror("send");
+            }
+        }
+    }
+    memset(msg, 0, MAXMSGLEN);                     // Clear msg buffer for future use
+    memset(message_with_username, 0, sizeof(message_with_username));
+}
+
+
+
+
 
 void *get_ip_address(struct sockaddr *sa){
     if(sa->sa_family==AF_INET){
@@ -66,8 +145,11 @@ int get_listner_socket(){
     }
     return listener;
 }
-
+void init(){
+    memset(clients,0,sizeof(clients));
+}
 void add_fd(struct pollfd *pollfds[], int newfd, int *fd_count, int *fd_size){
+    
     if(*fd_count==*fd_size){
         *fd_size *=2;           // double size
 
@@ -78,10 +160,14 @@ void add_fd(struct pollfd *pollfds[], int newfd, int *fd_count, int *fd_size){
     (*pollfds)[*fd_count].events=POLLIN;    // check ready to read
 
     (*fd_count)++;
+    if (send(newfd, CONNECTMESSAGE, strlen(CONNECTMESSAGE), 0) == -1) {
+        perror("send");
+    }
 }
 
 void del_fd(struct pollfd pollfds[], int i, int *fd_count){
     pollfds[i] = pollfds[*fd_count-1];      // copy the one from the end over this
+    clients[i].registered=0;
     (*fd_count)--;
 }
 
