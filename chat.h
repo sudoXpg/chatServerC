@@ -20,14 +20,18 @@
 #define MAXUSERS 100
 #define MAXMSGLEN 256
 #define CONNECTMESSAGE "Enter username : "
+#define CHATRESTORED "Chat Restored\n"
+#define CHATRESTORING "chat restoring . . .\n"
+
+char chatLog[4096];
 
 char logmsg[120];
 /*
 TODO
 X   multiple connections at socket bug
 X   log the ips and the usernames
-    log the chats
-    print the past chts upon newusr login
+X   log the chats
+X   print the past chts upon newusr login
     userlist -> make dynamic
     add comments
     add spam filter
@@ -36,7 +40,7 @@ X   log the ips and the usernames
 
 */
 
-void log_file(char *log){
+void log_ip_usr(char *log){
     FILE *logptr;
     logptr=fopen("log","a");
     if(!logptr){
@@ -45,6 +49,10 @@ void log_file(char *log){
     }
     fprintf(logptr,"%s\n",log);
     fclose(logptr);
+}
+
+void log_chat(char* msg){
+    sprintf(&chatLog[strlen(chatLog)], "%s\n", msg);
 }
 
 typedef struct{
@@ -78,7 +86,7 @@ void register_username(int client_index, char *msg) {
     clients[client_index].registered = 1;
     printf("User registered as: %s\n", clients[client_index].username);
     snprintf(logmsg,sizeof(logmsg),"User registered as: %s\n", clients[client_index].username);
-    log_file(logmsg);
+    log_ip_usr(logmsg);
     memset(logmsg,0,sizeof(logmsg));
     
 }
@@ -97,9 +105,11 @@ void broadcast_message(struct pollfd pollfds[], int i, char *msg, int msg_len, i
     char message_with_username[MAXUSERNAMELEN + MAXMSGLEN + 4] = {0}; // 3 extra for ": " and null terminator
 
     // Create the formatted message
-    snprintf(message_with_username, sizeof(message_with_username), "%s: %s", clients[i].username, msg);    
-    //trim_trailing_whitespace(message_with_username);
+    snprintf(message_with_username, sizeof(message_with_username), "%s: %s", clients[i].username, msg);
+    log_chat(message_with_username);  
+
     // Broadcast the message to all clients except the sender and listener
+
     for (int k = 0; k < fd_count; k++) {
         int dest_fd = pollfds[k].fd;
         if (dest_fd != listener && dest_fd != sender_fd) {
@@ -168,6 +178,7 @@ int get_listner_socket(){
 }
 void init(){
     memset(clients,0,sizeof(clients));
+    memset(chatLog,0,sizeof(chatLog));
 }
 void add_fd(struct pollfd *pollfds[], int newfd, int *fd_count, int *fd_size){
     
@@ -181,6 +192,15 @@ void add_fd(struct pollfd *pollfds[], int newfd, int *fd_count, int *fd_size){
     (*pollfds)[*fd_count].events=POLLIN;    // check ready to read
 
     (*fd_count)++;
+    if(send(newfd,CHATRESTORING,strlen(CHATRESTORING),0)==-1){
+        perror("send");
+    }
+    if(send(newfd,chatLog,strlen(chatLog),0)==-1){
+        perror("send");
+    }
+    if(send(newfd,CHATRESTORED,strlen(CHATRESTORED),0)==-1){
+        perror("send");
+    }
     if (send(newfd, CONNECTMESSAGE, strlen(CONNECTMESSAGE), 0) == -1) {
         perror("send");
     }
