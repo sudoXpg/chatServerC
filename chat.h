@@ -21,11 +21,13 @@
 #define MAXMSGLEN 256
 #define CONNECTMESSAGE "Enter username : "
 
+char logmsg[120];
 /*
 TODO
 X   multiple connections at socket bug
-    log the ips
+X   log the ips and the usernames
     log the chats
+    print the past chts upon newusr login
     userlist -> make dynamic
     add comments
     add spam filter
@@ -34,7 +36,16 @@ X   multiple connections at socket bug
 
 */
 
-
+void log_file(char *log){
+    FILE *logptr;
+    logptr=fopen("log","a");
+    if(!logptr){
+        fprintf(stderr,"unabe to open log file\n");
+        return;
+    }
+    fprintf(logptr,"%s\n",log);
+    fclose(logptr);
+}
 
 typedef struct{
     int fd;
@@ -66,6 +77,10 @@ void register_username(int client_index, char *msg) {
     trim_trailing_whitespace(clients[client_index].username);
     clients[client_index].registered = 1;
     printf("User registered as: %s\n", clients[client_index].username);
+    snprintf(logmsg,sizeof(logmsg),"User registered as: %s\n", clients[client_index].username);
+    log_file(logmsg);
+    memset(logmsg,0,sizeof(logmsg));
+    
 }
 
 void broadcast_message(struct pollfd pollfds[], int i, char *msg, int msg_len, int fd_count, int listener, int sender_fd) {

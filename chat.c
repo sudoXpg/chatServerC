@@ -47,6 +47,9 @@ int main(){
                     else{
                         add_fd(&pollfds,newfd,&fd_count,&fd_size);
                         printf("New connection from user at : %s on socket %d\n",inet_ntop(user_addr.ss_family,get_ip_address((struct sockaddr*)&user_addr),userIP,INET6_ADDRSTRLEN),newfd);
+                        snprintf(logmsg,sizeof(logmsg),"New connection from user at : %s on socket %d\n",inet_ntop(user_addr.ss_family,get_ip_address((struct sockaddr*)&user_addr),userIP,INET6_ADDRSTRLEN),newfd);
+                        log_file(logmsg);
+                        memset(logmsg,0,sizeof(logmsg));                        
                     }
                 }
                 else{
