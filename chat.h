@@ -1,6 +1,8 @@
 #ifndef CHAT_H
 #define CHAT_H
 
+#define _GNU_SOURCE
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -13,6 +15,8 @@
 #include<poll.h>
 #include<ctype.h>
 
+#include "badwords.h"
+
 #define PORT "9034"
 #define BACKLOGS 10
 #define LISTENER_ERROR 100
@@ -22,19 +26,23 @@
 #define CONNECTMESSAGE "Enter username : "
 #define CHATRESTORED "Chat Restored\n"
 #define CHATRESTORING "chat restoring . . .\n"
+#define SPAMSAID 88
+#define KICKOUTTHRESHOLD 2
 
-char chatLog[4096];
 
 char logmsg[120];
+char chatLog[4096];
+
+
 /*
 TODO
 X   multiple connections at socket bug
 X   log the ips and the usernames
 X   log the chats
 X   print the past chts upon newusr login
-    userlist -> make dynamic
+    userlist -> make dynamic ??
     add comments
-    add spam filter
+X   add spam filter user says sensored shii 3 times, kick out
     some emoji type shii (like if they type sth then a certain figure gets sent type?)
     [WAYYYY FUTURE] passwords??????
 
@@ -55,10 +63,22 @@ void log_chat(char* msg){
     sprintf(&chatLog[strlen(chatLog)], "%s\n", msg);
 }
 
+int spam_check(char *msg){
+    //strcasestr()    // compare and check for a substring in a string and ignore CASE
+    for(int i=0;i<sizeof(censor_words)/sizeof(censor_words[0]);i++){
+        if(strcasestr(msg,censor_words[i])!=NULL){
+            printf("A censored word was said\n");
+            return -SPAMSAID;
+        }
+        return 0;
+    }
+}
+
 typedef struct{
     int fd;
     char username[MAXUSERNAMELEN];
     int registered;
+    int spam_msg_count;
 }client_info;
 
 client_info clients[MAXUSERS];
@@ -107,6 +127,7 @@ void broadcast_message(struct pollfd pollfds[], int i, char *msg, int msg_len, i
     // Create the formatted message
     snprintf(message_with_username, sizeof(message_with_username), "%s: %s", clients[i].username, msg);
     log_chat(message_with_username);  
+    
 
     // Broadcast the message to all clients except the sender and listener
 
