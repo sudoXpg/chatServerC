@@ -16,18 +16,8 @@
 #include<ctype.h>
 
 #include "badwords.h"
+#include "constants.h"
 
-#define PORT "9034"
-#define BACKLOGS 10
-#define LISTENER_ERROR 100
-#define MAXUSERNAMELEN 30
-#define MAXUSERS 100
-#define MAXMSGLEN 256
-#define CONNECTMESSAGE "Enter username : "
-#define CHATRESTORED "Chat Restored\n"
-#define CHATRESTORING "chat restoring . . .\n"
-#define SPAMSAID 88
-#define KICKOUTTHRESHOLD 2
 
 
 char logmsg[120];
@@ -44,7 +34,7 @@ X   print the past chts upon newusr login
     add comments
 X   add spam filter user says sensored shii 3 times, kick out
     some emoji type shii (like if they type sth then a certain figure gets sent type?)
-    [WAYYYY FUTURE] passwords??????
+    [WAYY FUTURE] passwords??????
 
 */
 
@@ -142,10 +132,6 @@ void broadcast_message(struct pollfd pollfds[], int i, char *msg, int msg_len, i
     memset(msg, 0, MAXMSGLEN);                     // Clear msg buffer for future use
     memset(message_with_username, 0, sizeof(message_with_username));
 }
-
-
-
-
 
 void *get_ip_address(struct sockaddr *sa){
     if(sa->sa_family==AF_INET){
